@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Wingnal.LinkDevicePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Wingnal"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!-- Onboarding / device-link screen. Background is transparent so the window's Mica shows through. -->
+    <ScrollViewer Padding="48" VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Spacing="24" MaxWidth="440">
+
+            <!-- App identity -->
+            <StackPanel Spacing="12" HorizontalAlignment="Center">
+                <Image Source="ms-appx:///Assets/Square150x150Logo.scale-200.png"
+                       Width="56" Height="56" HorizontalAlignment="Center"
+                       AutomationProperties.AccessibilityView="Raw" />
+                <TextBlock Text="Link Wingnal to your phone"
+                           Style="{StaticResource TitleTextBlockStyle}"
+                           HorizontalAlignment="Center" TextAlignment="Center" />
+                <TextBlock TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"
+                           MaxWidth="380"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           Text="Wingnal connects as a linked device, just like Signal Desktop. Your phone stays your primary device." />
+            </StackPanel>
+
+            <!-- QR card (kept on a white plate so the code scans in any app theme) -->
+            <Border Width="280" Height="280" CornerRadius="16"
+                    Background="White" HorizontalAlignment="Center"
+                    Padding="14" BorderThickness="1"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}">
+                <Grid>
+                    <Image x:Name="QrImage" Stretch="Uniform"
+                           AutomationProperties.Name="Device linking QR code" />
+                    <ProgressRing x:Name="QrSpinner" IsActive="True" Width="48" Height="48"
+                                  AutomationProperties.Name="Connecting to Signal"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
+            <!-- Numbered steps -->
+            <StackPanel Spacing="14" HorizontalAlignment="Stretch" MaxWidth="340">
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="26" Height="26" CornerRadius="13" VerticalAlignment="Top"
+                            Background="{ThemeResource AccentFillColorDefaultBrush}">
+                        <TextBlock Text="1" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                   FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
+                               Text="Open Signal on your phone." />
+                </Grid>
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="26" Height="26" CornerRadius="13" VerticalAlignment="Top"
+                            Background="{ThemeResource AccentFillColorDefaultBrush}">
+                        <TextBlock Text="2" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                   FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
+                               Text="Go to Settings → Linked devices." />
+                </Grid>
+                <Grid ColumnSpacing="14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="26" Height="26" CornerRadius="13" VerticalAlignment="Top"
+                            Background="{ThemeResource AccentFillColorDefaultBrush}">
+                        <TextBlock Text="3" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                   FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" TextWrapping="Wrap"
+                               Text="Tap “Link new device” and scan this code." />
+                </Grid>
+            </StackPanel>
+
+            <!-- Live status -->
+            <TextBlock x:Name="StatusText" TextWrapping="Wrap" HorizontalAlignment="Center"
+                       TextAlignment="Center" Text="Connecting to Signal…"
+                       Style="{StaticResource CaptionTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>
