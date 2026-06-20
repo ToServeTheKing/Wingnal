@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Wingnal.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Wingnal"
+    xmlns:tkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="720" Margin="36,28,36,36" Spacing="4" HorizontalAlignment="Stretch">
+            <TextBlock Text="Settings" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,14" />
+
+            <!-- Account (expand for details) -->
+            <tkit:SettingsExpander x:Name="AccountExpander" Header="—" Description="">
+                <tkit:SettingsExpander.HeaderIcon>
+                    <FontIcon Glyph="&#xE77B;" />
+                </tkit:SettingsExpander.HeaderIcon>
+                <tkit:SettingsExpander.Items>
+                    <tkit:SettingsCard Header="Phone number">
+                        <TextBlock x:Name="DetailNumber" Text="—"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </tkit:SettingsCard>
+                    <tkit:SettingsCard Header="Device ID">
+                        <TextBlock x:Name="DetailDevice" Text="—"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </tkit:SettingsCard>
+                    <tkit:SettingsCard Header="Account ID">
+                        <TextBlock x:Name="DetailAci" Text="—" IsTextSelectionEnabled="True"
+                                   TextWrapping="Wrap" MaxWidth="340" TextAlignment="Right"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </tkit:SettingsCard>
+                </tkit:SettingsExpander.Items>
+            </tkit:SettingsExpander>
+
+            <!-- Appearance -->
+            <tkit:SettingsCard Header="Theme" Description="Match Windows, or always use light or dark."
+                               ContentAlignment="Vertical">
+                <tkit:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE771;" />
+                </tkit:SettingsCard.HeaderIcon>
+                <RadioButtons x:Name="ThemeRadios" AutomationProperties.Name="Theme"
+                              SelectionChanged="OnThemeChanged">
+                    <RadioButton Content="Use system setting" Tag="Default" />
+                    <RadioButton Content="Light" Tag="Light" />
+                    <RadioButton Content="Dark" Tag="Dark" />
+                </RadioButtons>
+            </tkit:SettingsCard>
+
+            <!-- Behavior -->
+            <tkit:SettingsCard Header="Press Enter to send"
+                               Description="When off, Enter starts a new line and Ctrl+Enter sends.">
+                <tkit:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE765;" />
+                </tkit:SettingsCard.HeaderIcon>
+                <ToggleSwitch x:Name="EnterToSendToggle" AutomationProperties.Name="Press Enter to send"
+                              Toggled="OnEnterToSendToggled" />
+            </tkit:SettingsCard>
+
+            <!-- Linked device / unlink -->
+            <tkit:SettingsCard Header="Unlink this device"
+                               Description="Removes Wingnal and deletes the messages and contacts stored on this PC. You'll need to scan the QR code again to relink.">
+                <tkit:SettingsCard.HeaderIcon>
+                    <FontIcon Glyph="&#xE74D;" />
+                </tkit:SettingsCard.HeaderIcon>
+                <Button x:Name="UnlinkButton" Content="Unlink" Click="OnUnlinkClick" />
+            </tkit:SettingsCard>
+
+            <TextBlock x:Name="VersionText" Style="{StaticResource CaptionTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                       HorizontalAlignment="Center" Margin="0,14,0,0" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

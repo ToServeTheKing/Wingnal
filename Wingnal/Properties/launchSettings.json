@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Wingnal (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Wingnal (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

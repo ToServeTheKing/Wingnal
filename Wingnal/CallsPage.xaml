@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Wingnal.CallsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Wingnal"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="14" MaxWidth="360">
+        <FontIcon Glyph="&#xE717;" FontSize="44" AutomationProperties.AccessibilityView="Raw"
+                  Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+        <TextBlock Text="Calls" Style="{StaticResource TitleTextBlockStyle}" HorizontalAlignment="Center" />
+        <TextBlock TextWrapping="Wrap" TextAlignment="Center"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                   Text="Your recent voice and video calls will show up here." />
+        <Border Background="{ThemeResource ControlFillColorSecondaryBrush}" CornerRadius="12"
+                Padding="12,4" HorizontalAlignment="Center">
+            <TextBlock Text="Coming soon" Style="{StaticResource CaptionTextBlockStyle}"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Border>
+    </StackPanel>
+</Page>

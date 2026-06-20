@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Wingnal.Service</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.28.3" />
+    <PackageReference Include="Grpc.Tools" Version="2.67.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Wingnal.Protocol\Wingnal.Protocol.csproj" />
+  </ItemGroup>
+
+  <!-- Signal .proto files are added in a later step; glob compiles them when present. -->
+  <ItemGroup>
+    <Protobuf Include="Protos\**\*.proto" GrpcServices="None" />
+  </ItemGroup>
+
+  <!-- Signal's private root CA, pinned for all connections to chat.signal.org. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\signal-ca.pem" />
+  </ItemGroup>
+
+</Project>
