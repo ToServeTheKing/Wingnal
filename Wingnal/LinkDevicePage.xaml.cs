@@ -41,7 +41,8 @@ namespace Wingnal
         {
             var accountStore = new AccountStore();
             using var rest = new SignalRestClient();
-            var linker = new LinkingManager(accountStore, rest);
+            // Shown in Signal's linked-devices list, e.g. "Wingnal: DESKTOP-1234".
+            var linker = new LinkingManager(accountStore, rest, $"Wingnal: {Environment.MachineName}");
 
             try
             {

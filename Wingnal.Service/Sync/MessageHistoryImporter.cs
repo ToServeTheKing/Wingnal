@@ -24,13 +24,16 @@ public sealed class MessageHistoryImporter
     private readonly SignalRestClient _rest;
     private readonly MessageStore _messages;
     private readonly ContactsStore _contacts;
+    private readonly ProfileKeyStore? _profileKeys;
 
-    public MessageHistoryImporter(SignalAccount account, SignalRestClient rest, MessageStore messages, ContactsStore contacts)
+    public MessageHistoryImporter(SignalAccount account, SignalRestClient rest, MessageStore messages,
+        ContactsStore contacts, ProfileKeyStore? profileKeys = null)
     {
         _account = account;
         _rest = rest;
         _messages = messages;
         _contacts = contacts;
+        _profileKeys = profileKeys;
     }
 
     /// <param name="ShouldRetry">True when the failure was transient (timed out / network / parse error)
@@ -80,7 +83,7 @@ public sealed class MessageHistoryImporter
 
             MessageBackupKey key = BackupKey.ForLinkAndSync(ephemeral, aci);
             BackupContents backup = BackupReader.Read(file, key);
-            BackupImporter.ImportSummary summary = new BackupImporter(_messages, _contacts, _account.Aci).Import(backup);
+            BackupImporter.ImportSummary summary = new BackupImporter(_messages, _contacts, _account.Aci, _profileKeys).Import(backup);
 
             FileLog.Write($"link'n'sync: imported {summary.Messages} message(s), {summary.Contacts} contact(s)");
             return new Result(true, summary, $"imported {summary.Messages} messages, {summary.Contacts} contacts");

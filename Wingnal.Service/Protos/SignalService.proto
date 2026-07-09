@@ -944,7 +944,7 @@ message ContactDetails {
   optional Avatar avatar = 3;
   reserved /* color */ 4;
   reserved /* verified */ 5;
-  reserved /* profileKey */ 6;
+  optional bytes profileKey = 6;   // used to fetch + decrypt the contact's profile name
   reserved /* blocked */ 7;
   optional uint32 expireTimer = 8;
   optional uint32 expireTimerVersion = 12;

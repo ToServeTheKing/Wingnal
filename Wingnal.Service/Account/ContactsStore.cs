@@ -74,6 +74,17 @@ public sealed class ContactsStore
         return cmd.ExecuteScalar() is string s ? _cipher.Unprotect(s) : null;
     }
 
+    /// <summary>The contact's phone number (E.164), if we synced/imported one — a friendlier last-resort
+    /// label than a raw ACI when no name is available.</summary>
+    public string? NumberFor(string aci)
+    {
+        using SqliteConnection conn = Open();
+        using SqliteCommand cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT number FROM contacts WHERE aci = $aci;";
+        cmd.Parameters.AddWithValue("$aci", aci);
+        return cmd.ExecuteScalar() is string s ? _cipher.Unprotect(s) : null;
+    }
+
     /// <summary>Contacts whose name or number contains <paramref name="query"/> (empty = all named),
     /// ordered by inbox position then name. Filtered in memory because the columns are encrypted.</summary>
     public IReadOnlyList<Contact> Search(string? query, int limit = 25)

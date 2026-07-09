@@ -99,6 +99,7 @@ namespace Wingnal
             try { new MessageStore().Clear(); } catch { }
             try { new ContactsStore().Clear(); } catch { }
             try { new ProfileKeyStore().Clear(); } catch { }
+            try { new ProfileNameStore().Clear(); } catch { }                  // resolved profile names
             try { new SqliteSenderKeyStore().Clear(); } catch { }              // group sender keys (GroupsV2)
             try { new Wingnal.Service.Groups.GroupStore().Clear(); } catch { } // group state (GroupsV2)
             new AccountStore().Delete();

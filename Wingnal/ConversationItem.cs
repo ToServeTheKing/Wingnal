@@ -68,7 +68,22 @@ namespace Wingnal
         public long LastTimestamp
         {
             get => _lastTimestamp;
-            set { _lastTimestamp = value; OnChanged(nameof(Subtitle)); }
+            set { _lastTimestamp = value; OnChanged(nameof(Subtitle)); OnChanged(nameof(TimeLabel)); }
+        }
+
+        /// <summary>Compact right-aligned timestamp for the row, Teams/Outlook-style: a time today, a
+        /// weekday within the last week, else a short date. Empty when there's no activity yet.</summary>
+        public string TimeLabel
+        {
+            get
+            {
+                if (_lastTimestamp == 0) return "";
+                DateTime dt = DateTimeOffset.FromUnixTimeMilliseconds(_lastTimestamp).LocalDateTime;
+                DateTime today = DateTime.Now.Date;
+                if (dt.Date == today) return dt.ToString("t");                       // today → 3:45 PM
+                if ((today - dt.Date).TotalDays < 7) return dt.ToString("ddd");      // this week → Mon
+                return dt.ToString("M/d/yyyy");                                      // else → 8/29/2024
+            }
         }
 
         /// <summary>Initials/avatar glyph — first character of the title.</summary>
@@ -76,6 +91,40 @@ namespace Wingnal
 
         /// <summary>Stable avatar colour for this peer.</summary>
         public Brush AvatarBrush => BrushFor(Peer);
+
+        private bool _isSelected;
+        private bool _isHovered;
+
+        /// <summary>True while this row is the selected conversation (kept in sync by the page).</summary>
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set { if (_isSelected == value) return; _isSelected = value; OnChanged(nameof(RowBackground)); }
+        }
+
+        /// <summary>True while the pointer is over this row.</summary>
+        public bool IsHovered
+        {
+            get => _isHovered;
+            set { if (_isHovered == value) return; _isHovered = value; OnChanged(nameof(RowBackground)); }
+        }
+
+        private static readonly SolidColorBrush TransparentBrush = new(Color.FromArgb(0, 0, 0, 0));
+
+        /// <summary>The row's fill brush, wrapping the whole row so it always contains the avatar, text
+        /// and unread dot: a raised neutral surface when selected, a subtle fill on hover, else transparent.
+        /// (Drawn by the row template's Border, not the ListViewItemPresenter, whose fill sizing/rounding
+        /// is unreliable in this Windows App SDK.)</summary>
+        public Brush RowBackground
+        {
+            get
+            {
+                string? key = _isSelected ? "ControlFillColorSecondaryBrush"
+                            : _isHovered ? "SubtleFillColorSecondaryBrush"
+                            : null;
+                return key is not null && Application.Current.Resources[key] is Brush b ? b : TransparentBrush;
+            }
+        }
 
         /// <summary>Deterministic avatar colour for a peer key (shared by the list rows and the thread
         /// header so the same contact is always the same colour). Cached per palette slot. In High

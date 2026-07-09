@@ -15,14 +15,17 @@ namespace Wingnal.Service.Messaging;
 public sealed class SyncProcessor
 {
     private readonly ContactsStore _contacts;
+    private readonly ProfileKeyStore? _profileKeys;
     private readonly AttachmentDownloader _downloader;
 
     /// <summary>Raised for each read receipt synced from the primary (senderAci, message timestamp).</summary>
     public event Action<string, long>? ReadReceiptReceived;
 
-    public SyncProcessor(ContactsStore contacts, AttachmentDownloader? downloader = null)
+    public SyncProcessor(ContactsStore contacts, ProfileKeyStore? profileKeys = null,
+        AttachmentDownloader? downloader = null)
     {
         _contacts = contacts;
+        _profileKeys = profileKeys;
         _downloader = downloader ?? new AttachmentDownloader();
     }
 
@@ -54,7 +57,7 @@ public sealed class SyncProcessor
     /// (no network) — the offline-testable core of contacts sync.</summary>
     public int ImportContacts(byte[] blob)
     {
-        int count = 0;
+        int count = 0, keys = 0;
         foreach (ContactRecord record in ContactRecordStream.Parse(blob))
         {
             string? aci = AciOf(record.Details.Aci, record.Details.AciBinary);
@@ -63,8 +66,17 @@ public sealed class SyncProcessor
             string? name = string.IsNullOrWhiteSpace(record.Details.Name) ? null : record.Details.Name;
             string? number = string.IsNullOrWhiteSpace(record.Details.Number) ? null : record.Details.Number;
             _contacts.Upsert(new Contact(aci, number, name, (int)record.Details.InboxPosition));
+
+            // Keep the contact's profile key so we can fetch + decrypt their profile name later, even
+            // when the primary had no system-contact name for them (so the row isn't left as a raw ACI).
+            if (_profileKeys is not null && record.Details.HasProfileKey)
+            {
+                byte[] pk = record.Details.ProfileKey.ToByteArray();
+                if (pk.Length == 32) { _profileKeys.Store(aci, pk); keys++; }
+            }
             count++;
         }
+        FileLog.Write($"sync: imported {count} contact(s), {keys} profile key(s)");
         return count;
     }
 

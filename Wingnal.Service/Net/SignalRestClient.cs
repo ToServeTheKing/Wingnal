@@ -74,6 +74,19 @@ public sealed class SignalRestClient : IDisposable
             ?? throw new InvalidOperationException("empty prekey response");
     }
 
+    /// <summary>Fetches a recipient's profile (GET /v1/profile/{serviceId}). The <c>name</c> field is
+    /// base64 of a ProfileCipher blob encrypted under the recipient's profile key. Returns null when the
+    /// profile isn't accessible (e.g. 401/403/404) so callers can fall back to a placeholder name rather
+    /// than surfacing an error. <paramref name="authToken"/> is Basic {aci.deviceId:password}.</summary>
+    public async Task<ProfileResponse?> GetProfileAsync(string serviceId, string authToken, CancellationToken ct)
+    {
+        using var msg = new HttpRequestMessage(HttpMethod.Get, $"/v1/profile/{serviceId}");
+        msg.Headers.Authorization = new AuthenticationHeaderValue("Basic", authToken);
+        using HttpResponseMessage response = await _http.SendAsync(msg, ct).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode) return null;
+        return await response.Content.ReadFromJsonAsync<ProfileResponse>(Json, ct).ConfigureAwait(false);
+    }
+
     /// <summary>Sends a list of per-device encrypted messages to a destination. Returns the raw body on
     /// a device-mismatch (409) / stale-devices (410) so the caller can react; throws on other failures.</summary>
     public async Task<(bool Ok, HttpStatusCode Status, string Body)> SendMessagesAsync(

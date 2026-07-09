@@ -1,7 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Windows-only in practice: the local stores use DPAPI (ProtectedData). Declaring the platform
+         here keeps CA1416 quiet for the store callers, matching the app + test projects. -->
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Wingnal.Service</RootNamespace>
