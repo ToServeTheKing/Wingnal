@@ -73,7 +73,7 @@
         <!-- ════ Conversation sidebar ════ -->
         <Grid x:Name="SidebarPane" Grid.Column="0" Background="{ThemeResource LayerFillColorDefaultBrush}"
               BorderThickness="0,0,1,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
-              Padding="12,8,12,12" RowSpacing="10">
+              Padding="6,8,6,12" RowSpacing="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
@@ -98,28 +98,40 @@
                 </Button>
             </Grid>
 
+            <!-- Right padding reserves a gutter so the scrollbar doesn't overlap the rows. -->
             <ListView Grid.Row="1" x:Name="ConversationList" SelectionMode="Single"
-                      SelectionChanged="OnConversationSelected" Padding="0,2">
-                <ListView.Resources>
-                    <!-- Clean selected row: a subtle accent-tinted rounded fill — no left "pill", no grey box. -->
-                    <x:Boolean x:Key="ListViewItemSelectionIndicatorVisualEnabled">False</x:Boolean>
-                    <CornerRadius x:Key="ListViewItemCornerRadius">8</CornerRadius>
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelected"
-                                     Color="{ThemeResource SystemAccentColor}" Opacity="0.16" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver"
-                                     Color="{ThemeResource SystemAccentColor}" Opacity="0.22" />
-                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed"
-                                     Color="{ThemeResource SystemAccentColor}" Opacity="0.12" />
-                </ListView.Resources>
+                      SelectionChanged="OnConversationSelected" Padding="0,2,8,2">
                 <ListView.ItemContainerStyle>
+                    <!-- The container is a bare, transparent content host: the row's own fill (hover/
+                         selected) is drawn by the Border in the item template, so it always wraps the
+                         whole row. Margin is the gap between rows; the row's inner padding lives on that
+                         Border. Stretch so the Border fills the full row width. -->
                     <Style TargetType="ListViewItem">
-                        <Setter Property="Padding" Value="8,6" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0,2" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                        <Setter Property="Margin" Value="0,1" />
+                        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListViewItem">
+                                    <ContentPresenter Background="Transparent"
+                                        Content="{TemplateBinding Content}"
+                                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch" />
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
                     </Style>
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="local:ConversationItem">
+                        <!-- This Border is the row fill: it wraps every component, so the hover/selected
+                             grey always contains the avatar, text, time and unread dot. -->
+                        <Border Background="{x:Bind RowBackground, Mode=OneWay}" CornerRadius="8"
+                                Padding="12,10"
+                                PointerEntered="OnConversationPointerEntered"
+                                PointerExited="OnConversationPointerExited">
                         <Grid ColumnSpacing="12">
                             <Grid.ContextFlyout>
                                 <MenuFlyout>
@@ -142,20 +154,29 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{x:Bind Title, Mode=OneWay}"
                                                FontWeight="{x:Bind TitleFontWeight, Mode=OneWay}"
                                                TextTrimming="CharacterEllipsis" />
-                                    <InfoBadge Grid.Column="1" Value="{x:Bind UnreadCount, Mode=OneWay}"
-                                               Visibility="{x:Bind UnreadVisibility, Mode=OneWay}"
+                                    <!-- Right-aligned time, then a small accent dot when there are unread messages. -->
+                                    <TextBlock Grid.Column="1" Text="{x:Bind TimeLabel, Mode=OneWay}"
+                                               Style="{StaticResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                                                VerticalAlignment="Center" />
+                                    <Ellipse Grid.Column="2" Width="8" Height="8" VerticalAlignment="Center"
+                                             Fill="{ThemeResource AccentFillColorDefaultBrush}"
+                                             Visibility="{x:Bind UnreadVisibility, Mode=OneWay}"
+                                             ToolTipService.ToolTip="Unread" />
                                 </Grid>
                                 <TextBlock Text="{x:Bind Preview, Mode=OneWay}"
                                            Style="{StaticResource CaptionTextBlockStyle}"
                                            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                           TextWrapping="NoWrap" MaxLines="1"
                                            TextTrimming="CharacterEllipsis" />
                             </StackPanel>
                         </Grid>
+                        </Border>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>

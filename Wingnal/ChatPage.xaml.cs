@@ -41,6 +41,7 @@ namespace Wingnal
         private readonly MessageStore _store = new();
         private readonly ContactsStore _contacts = new();
         private readonly ProfileKeyStore _profileKeys = new();
+        private readonly ProfileNameStore _profileNames = new();   // names fetched+decrypted from profiles
         private readonly SqliteSenderKeyStore _senderKeys = new();   // GroupsV2 G1 receive
         private readonly Wingnal.Service.Groups.GroupStore _groups = new();   // GroupsV2 group state
         private readonly Wingnal.Service.Attachments.AttachmentService _attachments = new();
@@ -49,6 +50,7 @@ namespace Wingnal
         private CancellationTokenSource? _importCts;
         private SignalAccount? _account;
         private SignalRestClient? _rest;
+        private ProfileService? _profiles;
         private SyncProcessor? _syncProcessor;
         // One durable per-peer session store shared by BOTH send and receive (sessions keyed by peer
         // address, so a single store serves the whole conversation without initiator/responder clobber).
@@ -129,7 +131,7 @@ namespace Wingnal
             _account = account;
             _protocolStore = new SqliteSignalProtocolStore(account, "protocol.db",
                 onChanged: () => new AccountStore().Save(account));
-            _syncProcessor = new SyncProcessor(_contacts);
+            _syncProcessor = new SyncProcessor(_contacts, _profileKeys);
 
             _store.Deduplicate();   // clean up any duplicate rows left by an earlier double-import
 
@@ -151,6 +153,10 @@ namespace Wingnal
             _ = StartReceiveAsync(account, _protocolStore, _cts.Token);
             // Ask the primary to push contacts/blocked/configuration so the list can show names.
             _ = RequestSyncAsync(account, _protocolStore, _cts.Token);
+            // For conversations we still can't name from synced contacts, resolve a name from each
+            // peer's Signal profile (best-effort; refreshes titles as names come back).
+            foreach (ConversationItem item in _conversations)
+                MaybeResolveProfile(item.Peer);
             // If this device was just re-linked with link+sync, show the import screen + backfill once.
             if (account.EphemeralBackupKey is { Length: 32 })
                 ImportOverlay.Visibility = Visibility.Visible;
@@ -171,8 +177,25 @@ namespace Wingnal
 
         private void OnConversationSelected(object sender, SelectionChangedEventArgs e)
         {
+            // Keep each row's IsSelected in sync so its Border draws the selected fill.
+            foreach (object removed in e.RemovedItems)
+                if (removed is ConversationItem prev) prev.IsSelected = false;
+            foreach (object added in e.AddedItems)
+                if (added is ConversationItem next) next.IsSelected = true;
+
             if (ConversationList.SelectedItem is not ConversationItem item) return;
             SelectPeer(item.Peer, item.Title);
+        }
+
+        // Hover state drives the row's subtle fill (the Border reads IsHovered via RowBackground).
+        private void OnConversationPointerEntered(object sender, PointerRoutedEventArgs e)
+        {
+            if (sender is FrameworkElement { DataContext: ConversationItem item }) item.IsHovered = true;
+        }
+
+        private void OnConversationPointerExited(object sender, PointerRoutedEventArgs e)
+        {
+            if (sender is FrameworkElement { DataContext: ConversationItem item }) item.IsHovered = false;
         }
 
         private void SelectPeer(string peer, string title)
@@ -566,7 +589,7 @@ namespace Wingnal
             try
             {
                 _rest ??= new SignalRestClient();
-                var importer = new MessageHistoryImporter(account, _rest, _store, _contacts);
+                var importer = new MessageHistoryImporter(account, _rest, _store, _contacts, _profileKeys);
 
                 MessageHistoryImporter.Result result = await Task.Run(
                     () => importer.ImportAsync(ct: _importCts.Token), _importCts.Token);
@@ -714,7 +737,10 @@ namespace Wingnal
                 if (!stored.Outgoing && !IsGroupKey(stored.Peer)
                     && !string.Equals(stored.Peer, _account?.Aci, StringComparison.OrdinalIgnoreCase)
                     && string.IsNullOrEmpty(_contacts.NameFor(stored.Peer)))
+                {
                     MaybeResyncContacts();
+                    MaybeResolveProfile(stored.Peer);   // try their Signal profile name too
+                }
             });
         }
 
@@ -750,8 +776,14 @@ namespace Wingnal
         {
             if (_syncProcessor is null) return;
             await _syncProcessor.ProcessAsync(sync).ConfigureAwait(false);
-            // Contacts may now have names — refresh conversation titles on the UI thread.
-            _dispatcher.TryEnqueue(RefreshTitles);
+            // Contacts may now have names (and profile keys). Refresh titles, then try to resolve a
+            // profile name for anyone we still can't name — the sync may have just given us their key.
+            _dispatcher.TryEnqueue(() =>
+            {
+                RefreshTitles();
+                foreach (ConversationItem item in _conversations)
+                    MaybeResolveProfile(item.Peer);
+            });
         }
 
         // ── delivery/read receipts + typing ──
@@ -945,10 +977,49 @@ namespace Wingnal
                 string? title = _groups.Load(gid)?.Group.Title;
                 return string.IsNullOrWhiteSpace(title) ? $"Group {gid[..Math.Min(8, gid.Length)]}" : title;
             }
+            // Prefer the primary's synced/imported name; else a name we fetched+decrypted from the peer's
+            // Signal profile; else their phone number; else a "Note to Self"/shortened-ACI placeholder.
             string? name = _contacts.NameFor(peer);
-            return string.IsNullOrWhiteSpace(name)
-                ? ConversationItem.TitleFor(peer, _account?.Aci ?? "")
-                : name;
+            if (!string.IsNullOrWhiteSpace(name)) return name;
+            string? profileName = _profileNames.Get(peer);
+            if (!string.IsNullOrWhiteSpace(profileName)) return profileName;
+            string? number = _contacts.NumberFor(peer);
+            if (!string.IsNullOrWhiteSpace(number)) return number;
+            return ConversationItem.TitleFor(peer, _account?.Aci ?? "");
+        }
+
+        /// <summary>Lazily builds the profile-name resolver (shares the on-demand REST client).</summary>
+        private ProfileService? EnsureProfiles()
+        {
+            if (_account is null) return null;
+            _rest ??= new SignalRestClient();
+            return _profiles ??= new ProfileService(_rest, _profileKeys, _profileNames, _account.BasicAuthToken());
+        }
+
+        /// <summary>If we can't name <paramref name="peer"/> from synced contacts and haven't already
+        /// resolved a profile name, fetch+decrypt one in the background and refresh titles on success.
+        /// Best-effort: no key / inaccessible profile / decrypt failure just leaves the placeholder.</summary>
+        private void MaybeResolveProfile(string peer)
+        {
+            if (IsGroupKey(peer)) return;
+            if (string.Equals(peer, _account?.Aci, StringComparison.OrdinalIgnoreCase)) return;
+            if (!string.IsNullOrWhiteSpace(_contacts.NameFor(peer))) return;   // address-book name wins
+            if (!string.IsNullOrWhiteSpace(_profileNames.Get(peer))) return;   // already resolved
+            ProfileService? profiles = EnsureProfiles();
+            CancellationTokenSource? cts = _cts;
+            if (profiles is null || cts is null) return;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    string? name = await profiles.ResolveAsync(peer, cts.Token).ConfigureAwait(false);
+                    if (name is not null) _dispatcher.TryEnqueue(RefreshTitles);
+                }
+                catch (Exception ex)
+                {
+                    FileLog.Write($"profile: resolve {peer} failed {ex.GetType().Name}: {ex.Message}");
+                }
+            });
         }
 
         // ── GroupsV2 conversation helpers ──

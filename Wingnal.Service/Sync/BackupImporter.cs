@@ -18,12 +18,15 @@ public sealed class BackupImporter
 {
     private readonly MessageStore _messages;
     private readonly ContactsStore _contacts;
+    private readonly ProfileKeyStore? _profileKeys;
     private readonly string _ownAci;
 
-    public BackupImporter(MessageStore messages, ContactsStore contacts, string ownAci)
+    public BackupImporter(MessageStore messages, ContactsStore contacts, string ownAci,
+        ProfileKeyStore? profileKeys = null)
     {
         _messages = messages;
         _contacts = contacts;
+        _profileKeys = profileKeys;
         _ownAci = ownAci.ToLowerInvariant();
     }
 
@@ -56,6 +59,13 @@ public sealed class BackupImporter
                     recipients[r.Id] = new ResolvedPeer(aci, name);
                     string? number = r.Contact.E164 != 0 ? "+" + r.Contact.E164 : null;
                     _contacts.Upsert(new StoreContact(aci, number, name, InboxPosition: 0));
+                    // Keep the profile key so an un-named contact's profile name can still be fetched
+                    // and decrypted later (the modern contacts sync no longer carries these).
+                    if (_profileKeys is not null && r.Contact.HasProfileKey)
+                    {
+                        byte[] pk = r.Contact.ProfileKey.ToByteArray();
+                        if (pk.Length == 32) _profileKeys.Store(aci, pk);
+                    }
                     contactCount++;
                     break;
                 default:

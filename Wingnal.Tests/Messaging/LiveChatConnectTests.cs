@@ -8,8 +8,9 @@ namespace Wingnal.Tests.Messaging;
 
 /// <summary>
 /// Live diagnostic: loads the persisted account and connects the authenticated chat socket for a few
-/// seconds, letting ChatReceiver log connect/frames/close to wingnal.log. Excluded from default runs.
-/// Run: dotnet test --filter "Category=Live". Requires a linked account on this machine.
+/// seconds, letting ChatReceiver log connect/frames/close to wingnal.log. Skipped by default because it
+/// logs in as the real account — which disconnects the running app ("Connected elsewhere") and spams its
+/// log. To run it manually, remove the Skip below. Requires a linked account on this machine.
 /// </summary>
 [Trait("Category", "Live")]
 public class LiveChatConnectTests
@@ -17,7 +18,7 @@ public class LiveChatConnectTests
     private readonly ITestOutputHelper _output;
     public LiveChatConnectTests(ITestOutputHelper output) => _output = output;
 
-    [Fact]
+    [Fact(Skip = "Live diagnostic — connects as the real account. Remove this Skip to run manually.")]
     public async Task ConnectsAuthenticatedSocket_AndLogs()
     {
         // The packaged WinUI app redirects LocalApplicationData into its package container.

@@ -16,7 +16,8 @@ public static class CredentialSystem
 
     public sealed class SystemParams
     {
-        public Ristretto255 GW, GWprime, GX0, GX1, GV, GZ;
+        // Always populated by Generate()'s object initializer (null! silences the constructor-exit check).
+        public Ristretto255 GW = null!, GWprime = null!, GX0 = null!, GX1 = null!, GV = null!, GZ = null!;
         public Ristretto255[] GY = new Ristretto255[NumSupportedAttrs];
 
         public static readonly SystemParams Hardcoded = Generate();
@@ -84,7 +85,7 @@ public sealed class Credential
 public sealed class CredentialPrivateKey
 {
     public Scalar25519 W, Wprime, X0, X1;
-    public Ristretto255 BigW;
+    public Ristretto255 BigW = null!;   // set by Generate()/FromPrivate() before use
     public Scalar25519[] Y = new Scalar25519[CredentialSystem.NumSupportedAttrs];
 
     public static CredentialPrivateKey Generate(byte[] randomness)
@@ -120,7 +121,7 @@ public sealed class CredentialPrivateKey
 /// <summary>The server's public credential key the client uses to receive + present credentials.</summary>
 public sealed class CredentialPublicKey
 {
-    public Ristretto255 CW;
+    public Ristretto255 CW = null!;   // set by FromPrivate() before use
     public Ristretto255[] I = new Ristretto255[CredentialSystem.NumSupportedAttrs - 1];   // I_2 .. I_7
 
     /// <summary>I for a credential with <paramref name="numAttrs"/> attribute points (≥2).</summary>

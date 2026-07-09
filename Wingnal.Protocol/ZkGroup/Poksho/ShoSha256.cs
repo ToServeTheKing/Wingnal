@@ -46,13 +46,13 @@ public sealed class ShoSha256
     {
         if (_absorbing) throw new InvalidOperationException("ShoSha256: must ratchet before squeezing");
         var output = new byte[outlen];
+        Span<byte> ctr = stackalloc byte[8];   // hoisted out of the loop; fully rewritten each iteration
         for (int i = 0; i * HashLen < outlen; i++)
         {
             using var h = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             h.AppendData(new byte[BlockLen - 1]);      // 63 zero bytes
             h.AppendData(new byte[] { 0x01 });
             h.AppendData(_cv);
-            Span<byte> ctr = stackalloc byte[8];
             BinaryPrimitives.WriteUInt64BigEndian(ctr, (ulong)i);
             h.AppendData(ctr);
             byte[] digest = h.GetHashAndReset();

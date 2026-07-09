@@ -1,5 +1,6 @@
 using System;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Navigation;
 
 namespace Wingnal
@@ -59,9 +60,11 @@ namespace Wingnal
             // The title-bar contact search belongs to Chats only.
             App.SearchVisibilitySink?.Invoke(target == typeof(ChatPage));
 
-            // Avoid re-navigating to the page we're already on.
+            // Avoid re-navigating to the page we're already on. Suppress the frame's content
+            // transition: its entrance animation competes with the rail's selection-indicator
+            // animation on the UI thread, which made the indicator stutter between tabs.
             if (target is not null && ContentFrame.CurrentSourcePageType != target)
-                ContentFrame.Navigate(target);
+                ContentFrame.Navigate(target, null, new SuppressNavigationTransitionInfo());
         }
     }
 }
