@@ -94,6 +94,8 @@ jobs:
             /p:UapAppxPackageBuildMode=SideloadOnly `
             /p:AppxBundle=Never `
             /p:GenerateAppxPackageOnBuild=true `
+            /p:PublishTrimmed=false `
+            /p:PublishReadyToRun=false `
             /p:AppxPackageSigningEnabled=true `
             /p:PackageCertificateKeyFile="${{ steps.cert.outputs.pfx }}" `
             /p:PackageCertificatePassword="${{ steps.cert.outputs.password }}" `
