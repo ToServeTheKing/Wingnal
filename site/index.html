@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wingnal — a native Windows client for Signal</title>
+<meta name="description" content="Wingnal is an unofficial native Windows (WinUI 3) client for Signal. Link it as a companion device and chat from your desktop.">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --panel: #ffffff;
+    --text: #1b1f24;
+    --muted: #5b6572;
+    --border: #e3e7ec;
+    --accent: #2f6df6;
+    --accent-contrast: #ffffff;
+    --code-bg: #eef1f5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1319;
+      --panel: #161b22;
+      --text: #e6edf3;
+      --muted: #9aa4b1;
+      --border: #262d36;
+      --accent: #4f8cff;
+      --accent-contrast: #0f1319;
+      --code-bg: #0b0f14;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 4rem 1.25rem 5rem; }
+  header { text-align: center; margin-bottom: 2.5rem; }
+  h1 { font-size: 2.6rem; margin: 0 0 .4rem; letter-spacing: -.02em; }
+  .tagline { color: var(--muted); font-size: 1.15rem; margin: 0; }
+  .badge {
+    display: inline-block; margin-top: 1rem; padding: .2rem .7rem;
+    font-size: .8rem; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 999px;
+  }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.6rem 1.75rem; margin: 1.25rem 0;
+  }
+  .card h2 { margin: 0 0 .75rem; font-size: 1.15rem; }
+  .btn {
+    display: inline-block; background: var(--accent); color: var(--accent-contrast);
+    text-decoration: none; font-weight: 600; padding: .7rem 1.4rem;
+    border-radius: 10px; transition: opacity .15s ease;
+  }
+  .btn:hover { opacity: .9; }
+  .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+  ol, ul { margin: .5rem 0; padding-left: 1.4rem; }
+  li { margin: .35rem 0; }
+  code, pre {
+    font-family: "Cascadia Code", "SF Mono", Consolas, monospace;
+    background: var(--code-bg); border-radius: 6px;
+  }
+  code { padding: .12rem .4rem; font-size: .9em; }
+  pre { padding: .9rem 1rem; overflow-x: auto; font-size: .85rem; border: 1px solid var(--border); }
+  a { color: var(--accent); }
+  .muted { color: var(--muted); font-size: .92rem; }
+  footer { text-align: center; margin-top: 2.5rem; color: var(--muted); font-size: .9rem; }
+  .note { border-left: 3px solid var(--accent); padding-left: 1rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Wingnal</h1>
+    <p class="tagline">A native Windows client for Signal.</p>
+    <span class="badge">Unofficial · WinUI 3 · Early prototype</span>
+  </header>
+
+  <div class="card">
+    <h2>Download</h2>
+    <p>Grab the latest signed MSIX for your architecture from the Releases page.</p>
+    <div class="actions">
+      <a class="btn" href="https://github.com/ToServeTheKing/Wingnal/releases/latest">Latest release</a>
+      <a class="btn secondary" href="https://github.com/ToServeTheKing/Wingnal">Source on GitHub</a>
+    </div>
+    <p class="muted" style="margin-bottom:0">Builds are provided for <strong>x64</strong> and <strong>ARM64</strong>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Install</h2>
+    <ol>
+      <li>Download the <code>.msix</code> matching your PC (x64 or ARM64) from the latest release.</li>
+      <li><strong>First time only</strong> — releases are currently signed with a self-signed
+          certificate, so Windows won't trust them yet. Download <code>Wingnal.cer</code> from the
+          same release, right-click it → <em>Install Certificate</em> → <em>Local Machine</em> →
+          place it in <em>Trusted People</em>.</li>
+      <li>Double-click the <code>.msix</code> and choose <em>Install</em>.</li>
+    </ol>
+    <p class="muted note">The certificate step exists only because there's no commercial code-signing
+      certificate yet. Once one is configured, the download will install without any manual trust step.</p>
+  </div>
+
+  <div class="card">
+    <h2>Link your account</h2>
+    <p>Wingnal connects as a <strong>companion device</strong> — your phone stays the primary device.
+       In the Signal app on your phone go to
+       <em>Settings → Linked devices → Link new device</em>, then scan the QR code Wingnal shows on
+       first launch.</p>
+  </div>
+
+  <footer>
+    <p>Wingnal is an independent project and is not affiliated with or endorsed by Signal Messenger.</p>
+  </footer>
+</div>
+</body>
+</html>
