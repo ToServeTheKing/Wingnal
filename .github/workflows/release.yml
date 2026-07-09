@@ -1,0 +1,142 @@
+name: Release
+
+# Push a tag like v1.2.3 (or v1.2.3.4) to build signed MSIX packages and
+# publish a GitHub Release. The tag is the source of truth for the version:
+# it is stamped into Package.appxmanifest at build time, so you don't need to
+# edit the version by hand before releasing.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build MSIX (${{ matrix.platform }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $ver = $tag.TrimStart('v')
+          if ($ver -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
+            throw "Tag '$tag' is not a valid version. Expected vMAJOR.MINOR.PATCH (optionally .REVISION)."
+          }
+          if (($ver.Split('.')).Count -eq 3) { $ver = "$ver.0" }
+          "version=$ver" >> $env:GITHUB_OUTPUT
+          Write-Host "Releasing version $ver from tag $tag"
+
+      - name: Stamp version into Package.appxmanifest
+        shell: pwsh
+        run: |
+          $path = "Wingnal/Package.appxmanifest"
+          [xml]$xml = Get-Content $path
+          $xml.Package.Identity.Version = "${{ steps.version.outputs.version }}"
+          $xml.Save((Resolve-Path $path).Path)
+          Write-Host "Manifest Identity Version set to ${{ steps.version.outputs.version }}"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Prepare signing certificate
+        id: cert
+        shell: pwsh
+        env:
+          SIGNING_CERTIFICATE: ${{ secrets.SIGNING_CERTIFICATE }}
+          SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'wingnal-signing.pfx'
+          if ($env:SIGNING_CERTIFICATE) {
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGNING_CERTIFICATE))
+            $pwd = $env:SIGNING_CERTIFICATE_PASSWORD
+            Write-Host "Signing with certificate from repository secrets."
+            "selfsigned=false" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "::warning::No SIGNING_CERTIFICATE secret set - generating a temporary self-signed certificate. Users must install the attached Wingnal.cer into 'Trusted People' before they can sideload the MSIX. See RELEASING.md to configure a persistent certificate."
+            $pwd = [guid]::NewGuid().ToString('N')
+            $cert = New-SelfSignedCertificate `
+              -Type Custom `
+              -Subject "CN=micro" `
+              -KeyUsage DigitalSignature `
+              -FriendlyName "Wingnal CI (self-signed)" `
+              -CertStoreLocation "Cert:\CurrentUser\My" `
+              -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+            $sec = ConvertTo-SecureString -String $pwd -Force -AsPlainText
+            Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $sec | Out-Null
+            Export-Certificate -Cert $cert -FilePath (Join-Path $env:RUNNER_TEMP 'Wingnal.cer') | Out-Null
+            "selfsigned=true" >> $env:GITHUB_OUTPUT
+          }
+          "pfx=$pfx" >> $env:GITHUB_OUTPUT
+          "password=$pwd" >> $env:GITHUB_OUTPUT
+
+      - name: Build & sign MSIX
+        shell: pwsh
+        run: |
+          msbuild Wingnal/Wingnal.csproj `
+            /restore `
+            /p:Configuration=Release `
+            /p:Platform=${{ matrix.platform }} `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:AppxBundle=Never `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:AppxPackageSigningEnabled=true `
+            /p:PackageCertificateKeyFile="${{ steps.cert.outputs.pfx }}" `
+            /p:PackageCertificatePassword="${{ steps.cert.outputs.password }}" `
+            /p:AppxPackageDir="${{ github.workspace }}\artifacts\msix\\"
+
+      - name: Collect artifacts
+        id: collect
+        shell: pwsh
+        run: |
+          $out = Join-Path $env:GITHUB_WORKSPACE 'artifacts\release'
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $msix = Get-ChildItem -Path (Join-Path $env:GITHUB_WORKSPACE 'artifacts\msix') -Recurse -Include *.msix, *.msixbundle |
+                  Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msix) { throw "No MSIX package was produced." }
+          $ext = $msix.Extension
+          $dest = Join-Path $out "Wingnal-${{ steps.version.outputs.version }}-${{ matrix.platform }}$ext"
+          Copy-Item $msix.FullName $dest -Force
+          Write-Host "Packaged $dest"
+          if ('${{ steps.cert.outputs.selfsigned }}' -eq 'true' -and '${{ matrix.platform }}' -eq 'x64') {
+            Copy-Item (Join-Path $env:RUNNER_TEMP 'Wingnal.cer') (Join-Path $out 'Wingnal.cer') -Force
+          }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-${{ matrix.platform }}
+          path: artifacts/release/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true
